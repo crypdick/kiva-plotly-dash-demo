@@ -19,9 +19,9 @@ df = pd.read_csv('data/kiva_loans.csv')
 
 ##### Beau graphs
 # subset for important columns
-df = df[['term_in_months', 'loan_amount', 'lender_count', 'funded_amount',
+"""df = df[['term_in_months', 'loan_amount', 'lender_count', 'funded_amount',
          'borrower_genders', 'repayment_interval', 'country', 'date',
-         'activity']]
+         'activity']]"""
 # subset for top 2 (number of loans) country values and USA to compare to
 country_values = ['Philippines', 'Kenya', 'United States']
 Beau_df = df[df['country'].isin(country_values)]
@@ -39,7 +39,7 @@ top5 = df.groupby('activity').size().sort_values(ascending=False)[
 # converting dates from string to DateTime objects gives nice tools
 df['date'] = pd.to_datetime(df['date'])
 # for example, we can turn the full date into just a year
-df['year'] = df.date.dt.to_period("Y")
+df['year'] = df.date.dt.year
 # then convert it to integers so you can do list comprehensions later
 # astype(int) expects a strings, so we need to go Period -> str -> int
 # we want ints so we can find the min, max, etc later
@@ -150,7 +150,18 @@ app.layout = html.Div(className='container', children=[
             )
         ],
             style={'marginLeft': 40, 'marginRight': 40})
-    ])
+    ]),
+        html.Div([
+        dcc.Graph(id='scatter-with-slider', animate='true'),
+        dcc.Slider(
+            id='scatter-slider',
+            min=2014,
+            max=2017,
+            value=2014,
+            step=1,
+            marks={str(year): str(year) for year in [2014, 2015, 2016, 2017]}
+    )
+])
 ])
 
 
@@ -257,6 +268,38 @@ def update_figure(selected_year):
     cloropleth_map_fig = {'data': data, 'layout': layout}
     return cloropleth_map_fig
 
+# Joe scatter-plot
+@app.callback(
+    dash.dependencies.Output('scatter-with-slider', 'figure'),
+    [dash.dependencies.Input('scatter-slider', 'value')])
+def update_scatter(selected_year):
+    filtered_df = df[df['year'] == selected_year]
+    traces = []
+    for i in filtered_df.sector.unique():
+        df_by_sector = filtered_df[filtered_df['sector'] == i]
+        traces.append(go.Scatter(
+            x=[np.mean(df_by_sector[df_by_sector['country'] == j].loan_amount) for j in df_by_sector.country.unique()],
+            y=[np.mean(df_by_sector[df_by_sector['country'] == j].lender_count) for j in df_by_sector.country.unique()],
+            text=df_by_sector['country'],
+            mode='markers',
+            opacity=0.7,
+            marker={
+                'size': 15,
+                'line': {'width': 0.5, 'color': 'white'}
+            },
+            name=i
+        ))
+
+    return {
+        'data': traces,
+        'layout': go.Layout(
+            xaxis={'type': 'linear', 'title': 'Loan Amount', 'autorange': 'True'},
+            yaxis={'type': 'linear', 'title': 'Lender Count', 'autorange': 'True'},
+            margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+            legend={'x': 0, 'y': 1},
+            hovermode='closest'
+        )
+    }
 
 if __name__ == '__main__':
     app.run_server(debug=True)
