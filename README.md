@@ -1,5 +1,12 @@
 # kiva-plotly-dash-demo
 
+# Canvas submission expectations
+* functioning Dash code
+* a screenshot of your Dash
+* a file with a list of team members, questions you chose to answer with your visualizations
+* 2-3 different types of graphs per group
+
+# Resources
 Dash repositories from last week's lecture:
 https://github.com/crypdick/simple-plotly-dash-demo
 (remember to look at the different feature branches)
