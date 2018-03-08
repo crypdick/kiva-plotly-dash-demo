@@ -1,5 +1,14 @@
 # kiva-plotly-dash-demo
 
+Dash repositories from last week's lecture:
+https://github.com/crypdick/simple-plotly-dash-demo
+(remember to look at the different feature branches)
+
+https://github.com/crypdick/gdp-lifeexpectancy-dashboard
+
+Dash gallery:
+https://dash.plot.ly/gallery
+
 Kiva site:
 https://www.kiva.org/portfolio
 
