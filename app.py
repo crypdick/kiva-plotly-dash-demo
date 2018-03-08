@@ -20,7 +20,8 @@ df = pd.read_csv('data/kiva_loans.csv')
 ##### Beau graphs
 # subset for important columns
 df = df[['term_in_months', 'loan_amount', 'lender_count', 'funded_amount',
-         'borrower_genders', 'repayment_interval', 'country', 'date']]
+         'borrower_genders', 'repayment_interval', 'country', 'date',
+         'activity']]
 # subset for top 2 (number of loans) country values and USA to compare to
 country_values = ['Philippines', 'Kenya', 'United States']
 Beau_df = df[df['country'].isin(country_values)]
@@ -34,7 +35,6 @@ top5 = df.groupby('activity').size().sort_values(ascending=False)[
 ######## /Beau graphs
 
 
-
 ###### Richard maps
 # converting dates from string to DateTime objects gives nice tools
 df['date'] = pd.to_datetime(df['date'])
@@ -45,18 +45,27 @@ df['year'] = df.date.dt.to_period("Y")
 # we want ints so we can find the min, max, etc later
 df['year'] = df.year.astype(str).astype(int)
 
-
-
+# This is our features of interest for mapping
+# I grouped by year first so that I can then filter by year simply with just
+# df.loc[2014]
+countries_funded_amount = df.groupby(['year', 'country']).size()
 ######
 
+# Create a Dash object instance
 app = dash.Dash()
 
+# The layout attribute of the Dash object, app
+# is where you include the elements you want to appear in the
+# dashboard. Here, dcc.Graph and dcc.Slider are separate
+# graph objects. Most of Graph's features are defined
+# inside the function update_figure, but we set the id
+# here so we can reference it inside update_figure
 app.layout = html.Div(className='container', children=[
     html.H1(children='Top 3 countries Violin distributions',  # add a title
             style={
                 'textAlign': 'center',  # center the header
                 'color': '#7F7F7F'
-            # https://www.biotechnologyforums.com/thread-7742.html more color code options
+                # https://www.biotechnologyforums.com/thread-7742.html more color code options
             }),
     html.Hr(),
     html.Div(className='two columns', children=[
@@ -95,7 +104,7 @@ app.layout = html.Div(className='container', children=[
         style={
             'textAlign': 'center',  # center the header
             'color': '#7F7F7F'
-        # https://www.biotechnologyforums.com/thread-7742.html more color code options
+            # https://www.biotechnologyforums.com/thread-7742.html more color code options
         }
     ),
     html.Div(dcc.Graph(  # add a bar graph to dashboard
@@ -116,7 +125,32 @@ app.layout = html.Div(className='container', children=[
             )
         }
 
-    ))
+    )),
+    # Richard's cloropleth map
+    html.Div([
+        html.Hr(),
+        html.H1(
+        children='Cloropleth maps including slider and log-scale colormap',
+        style={
+            'textAlign': 'center',  # center the header
+            'color': '#7F7F7F'
+            # https://www.biotechnologyforums.com/thread-7742.html more color code options
+        }
+    ),
+        dcc.Graph(id='graph-with-slider'),
+        html.Div([  # div inside div for style
+            dcc.Slider(
+                id='year-slider',
+                min=df['year'].min(),
+                max=df['year'].max(),
+                value=df['year'].min(),  # The default value of the slider
+                step=None,
+                # the values have to be the same dtype for filtering to work later
+                marks={str(year): year for year in df['year'].unique()},
+            )
+        ],
+            style={'marginLeft': 40, 'marginRight': 40})
+    ])
 ])
 
 
@@ -130,7 +164,7 @@ def update_graph(value, points):
             {
                 'type': 'violin',
                 'x': a['country'][a['country'] == 'Philippines'],
-            # specify a violin plot filtered 'value' of data column
+                # specify a violin plot filtered 'value' of data column
                 'y': a[value],
                 'text': ['Sample {}'.format(i) for i in range(len(Beau_df))],
                 'points': points,
@@ -160,6 +194,68 @@ def update_graph(value, points):
             # since we listed them as different dictionaries within 'data' they are automatically separated by color with a legend. Remove this
         )
     }
+
+
+# Notice the Input and Outputs in this wrapper correspond to
+# the ids of the components in app.layout above.
+@app.callback(
+    Output('graph-with-slider', 'figure'),
+    [Input('year-slider', 'value')])
+def update_figure(selected_year):
+    """Define how the graph is to be updated based on the slider."""
+
+    # Depending on the year selected on the slider, filter the db
+    # by that year.
+
+    # snag: using .groupby() with more than one feature caused the datatype
+    # to be Pandas.Series instead of Pandas.DataFrame. So, we couldn't just do
+    # countries_funded_amount[countries_funded_amount['year'] == selected_year]
+    one_year_data = countries_funded_amount.loc[selected_year]
+
+    logzMin = np.log(one_year_data.values.min())
+    logzMax = np.log(one_year_data.values.max())
+    log_ticks = np.linspace(logzMin, logzMax, 8)
+    exp_labels = np.exp(log_ticks).astype(np.int, copy=False)
+    data = [dict(
+        type='choropleth',
+        locations=one_year_data.index.get_level_values('country'),
+        # list of country names
+        # other option is USA-states
+        locationmode='country names',
+        # sets the color values. using log scale so that extreme values don't
+        # drown out the rest of the data
+        z=np.log(one_year_data.values),  # ...and their associated values
+        # sets the text element associated w each position
+        text=one_year_data.values,
+        hoverinfo='location+text',  # hide the log-transformed data values
+        # other colorscales are available here:
+        # https://plot.ly/ipython-notebooks/color-scales/
+        colorscale='Greens',
+        # by default, low numbers are dark and high numbers are white
+        reversescale=True,
+        # set upper bound of color domain (see also zmin)
+        # zmin=200,
+        # zmax=30000,
+        # if you want to use zmin or zmax don't forget to disable zauto
+        # zauto=False,
+        marker={'line': {'width': 0.5}},  # width of country boundaries
+        colorbar={'autotick': True,
+                  'tickprefix': '',  # could be useful if plotting $ values
+                  'title': '# of loans',  # colorbar title
+                  'tickvals': log_ticks,
+                  'ticktext': exp_labels
+                  # transform log tick labels back to standard scale
+                  },
+    )]
+    layout = dict(
+        title='Total Loans Per Country. Year: {}<br>Source:\
+                <a href="https://www.kaggle.com/kiva/data-science-for-good-kiva-crowdfunding"">\
+                Kaggle</a>'.format(selected_year),
+        font=dict(family='Courier New, monospace', size=18, color='#7f7f7f'),
+        geo={'showframe': False}  # hide frame around map
+    )
+    cloropleth_map_fig = {'data': data, 'layout': layout}
+    return cloropleth_map_fig
 
 
 if __name__ == '__main__':
