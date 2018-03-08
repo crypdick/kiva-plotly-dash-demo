@@ -5,6 +5,7 @@
 * a screenshot of your Dash
 * a file with a list of team members, questions you chose to answer with your visualizations
 * 2-3 different types of graphs per group
+* turn in by Friday of next week, after midterms
 
 # Resources
 Dash repositories from last week's lecture:
