@@ -28,15 +28,18 @@ len(kiva.activity.unique()) #shows there are 163 unique activities
 
 top5 = kiva.groupby('activity').size().sort_values(ascending=False)[0:5] #lets look at top 10
 
-df2 = kiva[kiva['country'].isin(top5.index)]
 
 app = dash.Dash()
 
 app.layout = html.Div(className='container', children=[
-    html.H1('Top 3 countries Violin distributions'),
+    html.H1(children='Top 3 countries Violin distributions', #add a title
+        style={
+            'textAlign': 'center', # center the header
+            'color': '#7F7F7F' # https://www.biotechnologyforums.com/thread-7742.html more color code options
+        }),
     html.Hr(),
     html.Div(className='two columns', children=[
-        dcc.RadioItems(
+        dcc.RadioItems( #buttons that select which y value in violin plots
             id='items',
             options=[
                 {'label': 'term in months', 'value': 'term_in_months'},
@@ -45,10 +48,12 @@ app.layout = html.Div(className='container', children=[
                 {'label': 'funded amount', 'value': 'funded_amount'}
             ],
             value= 'term_in_months',
-            style={'display': 'block'}
+            style={'display': 'block',
+                   'textAlign': 'center',
+                   'color': '#7FDBFF'}
         ),
         html.Hr(),
-        dcc.RadioItems(
+        dcc.RadioItems( #more options
             id='points',
             options=[
                 {'label': 'Display All Points', 'value': 'all'},
@@ -57,26 +62,28 @@ app.layout = html.Div(className='container', children=[
                 {'label': 'Display Suspected Outliers', 'value': 'suspectedoutliers'},
             ],
             value='all',
-            style={'display': 'block'}
+            style={'display': 'block',
+                   'textAlign': 'center',
+                   'color': '#7FDBFF'}
         ),
     ]),
     html.Div(dcc.Graph(id='graph'), className='ten columns'),
     html.H1(
         children='Top 5 activities for loans',
         style={
-            'textAlign': 'center',
-            'color': '#7F7F7F'
+            'textAlign': 'center', # center the header
+            'color': '#7F7F7F' # https://www.biotechnologyforums.com/thread-7742.html more color code options
         }
     ),    
-    html.Div(dcc.Graph(
+    html.Div(dcc.Graph( # add a bar graph to dashboard
         id='basic-interactions',
         figure={
             'data': [
                 {
-                    'x': top5.index,
+                    'x': top5.index, 
                     'y': top5,
                     'type': 'bar',
-                    'opacity': .6
+                    'opacity': .6 #changes the bar chart's opacity
                 }
             
             ],
@@ -99,11 +106,11 @@ def update_graph(value, points):
         'data': [
             {
                 'type': 'violin',
-                'x': a['country'][a['country']== 'Philippines'],
+                'x': a['country'][a['country']== 'Philippines'], # specify a violin plot filtered 'value' of data column
                 'y': a[value],
                 'text': ['Sample {}'.format(i) for i in range(len(df))],
                 'points': points,
-                'jitter': .7
+                'jitter': .7 #set the space of points
             },
             {
                 'type': 'violin',
@@ -123,9 +130,10 @@ def update_graph(value, points):
             }  
         ],
         
-        'layout': {
-            'showlegend': False
-        }
+        'layout': go.Layout(
+                yaxis={'title': value},
+                showlegend = False #since we listed them as different dictionaries within 'data' they are automatically separated by color with a legend. Remove this
+            )
     }
 if __name__ == '__main__':
     app.run_server(debug=True)
