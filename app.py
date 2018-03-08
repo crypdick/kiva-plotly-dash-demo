@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Mar  7 12:36:03 2018
+Created on Wed Mar  7 19:18:43 2018
 
 @author: beaubritain
 """
@@ -11,6 +11,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
 from dash.dependencies import Input, Output
+import plotly.graph_objs as go
 
 kiva = pd.read_csv(
     'kiva_loans.csv')
@@ -21,6 +22,13 @@ country_values = ['Philippines', 'Kenya', 'United States']
 df = df[df['country'].isin(country_values)]
 #sample to improve speed
 a = df.sample(5000)
+
+len(kiva.activity.unique()) #shows there are 163 unique activities
+
+
+top5 = kiva.groupby('activity').size().sort_values(ascending=False)[0:5] #lets look at top 10
+
+df2 = kiva[kiva['country'].isin(top5.index)]
 
 app = dash.Dash()
 
@@ -52,7 +60,34 @@ app.layout = html.Div(className='container', children=[
             style={'display': 'block'}
         ),
     ]),
-    html.Div(dcc.Graph(id='graph'), className='ten columns')
+    html.Div(dcc.Graph(id='graph'), className='ten columns'),
+    html.H1(
+        children='Top 5 activities for loans',
+        style={
+            'textAlign': 'center',
+            'color': '#7F7F7F'
+        }
+    ),    
+    html.Div(dcc.Graph(
+        id='basic-interactions',
+        figure={
+            'data': [
+                {
+                    'x': top5.index,
+                    'y': top5,
+                    'type': 'bar',
+                    'opacity': .6
+                }
+            
+            ],
+            'layout': go.Layout(
+                xaxis={ 'title': 'Activity'},
+                yaxis={'title': 'Count'},
+            )
+        }
+            
+        
+    ))
 ])
         
 @app.callback(
