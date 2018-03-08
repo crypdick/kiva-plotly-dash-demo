@@ -13,8 +13,7 @@ import pandas as pd
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
 
-kiva = pd.read_csv(
-    'kiva_loans.csv')
+kiva = pd.read_csv('data/kiva_loans.csv')
 #subset for important columns 
 df = kiva[['term_in_months','loan_amount', 'lender_count', 'funded_amount', 'borrower_genders', 'repayment_interval', 'country']]
 #subset for top 2 (number of loans) country values and USA to compare to 
